@@ -1,6 +1,8 @@
-from django.http import JsonResponse
-from django.utils.dateparse import parse_datetime
+from datetime import timedelta
 
+from django.http import JsonResponse, FileResponse
+from django.utils.dateparse import parse_datetime
+from django.utils import timezone
 from api.generics import BaseAPIView, BaseView
 from api.service import RobotService
 from robots.models import Robot
@@ -20,3 +22,12 @@ class CreateRobotView(BaseAPIView):
             return JsonResponse({'robot_id': robot.id}, status=201)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+
+
+class RobotStatsView(BaseView):
+
+    def get(self, request, *args, **kwargs):
+        end_date = timezone.now()
+        start_date = end_date - timedelta(days=7)
+        file = RobotService.get_stats_file(start_date, end_date)
+        return FileResponse(file, filename=f'robots.xlsx')
