@@ -6,3 +6,7 @@ class Robot(models.Model):
     model = models.CharField(max_length=2, blank=False, null=False)
     version = models.CharField(max_length=2, blank=False, null=False)
     created = models.DateTimeField(blank=False, null=False)
+
+    @staticmethod
+    def get_robot_serial(model, version) -> str:
+        return f'{model}-{version}'
