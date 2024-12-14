@@ -2,9 +2,12 @@ import io
 from datetime import datetime
 
 import xlsxwriter
-from django.db.models import Count
+from django.core.mail import send_mail
+from django.db.models import Count, QuerySet
 from django.utils.dateparse import parse_datetime
 
+from customers.models import Customer
+from orders.models import Order
 from robots.models import Robot
 
 
@@ -74,3 +77,55 @@ class RobotService:
         workbook.close()
         file.seek(0)
         return file
+
+
+class CustomerService:
+
+    @staticmethod
+    def get_customer(email: str) -> Customer:
+        customer, _ = Customer.objects.get_or_create(email=email)
+        return customer
+
+    @staticmethod
+    def notify_customer_robot_available(waiting_orders: QuerySet, robot: Robot) -> None:
+        # Отправляем письмо каждому клиенту
+        recipient_list = [order.customer.email for order in waiting_orders]
+        send_mail(  # FIXME нужно указать креды в settings
+            subject="Робот доступен для заказа",
+            message=(
+                f"Добрый день!\n\n"
+                f"Недавно вы интересовались нашим роботом модели {robot.model}, версии {robot.version}. "
+                f"Этот робот теперь в наличии. Если вам подходит этот вариант - пожалуйста, свяжитесь с нами."
+            ),
+            from_email="info@robots.com",
+            recipient_list=recipient_list,
+        )
+
+
+class OrderService:
+
+    @staticmethod
+    def create_order(customer: Customer, robot_serial: str) -> Order:
+        robot = Robot.objects.filter(
+            serial=robot_serial,
+            order__isnull=True
+        ).first()
+        if robot:
+            status = Order.Status.COMPLETED
+        else:
+            status = Order.Status.WAITING
+
+        order = Order.objects.create(
+            customer=customer,
+            status=status,
+            robot_serial=robot_serial,
+            robot=robot
+        )
+        return order
+
+    @staticmethod
+    def get_waiting_orders(robot: Robot):
+        return Order.objects.filter(
+            robot_serial=robot.serial,
+            status=Order.Status.WAITING
+        ).select_related('customer')
