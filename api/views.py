@@ -1,11 +1,11 @@
 from datetime import timedelta
 
 from django.http import JsonResponse, FileResponse
-from django.utils.dateparse import parse_datetime
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+
 from api.generics import BaseAPIView, BaseView
-from api.service import RobotService
-from robots.models import Robot
+from api.service import RobotService, CustomerService, OrderService
 
 
 class CreateRobotView(BaseAPIView):
@@ -31,3 +31,16 @@ class RobotStatsView(BaseView):
         start_date = end_date - timedelta(days=7)
         file = RobotService.get_stats_file(start_date, end_date)
         return FileResponse(file, filename=f'robots.xlsx')
+
+
+class RobotOrderView(BaseAPIView):
+
+    def post(self, request, *args, **kwargs):
+        try:
+            data = self.get_data_json()
+            customer = CustomerService.get_customer(data['customer_email'])
+            robot_serial = data['robot_serial']
+            order = OrderService.create_order(customer, robot_serial)
+            return JsonResponse({'status': order.status}, status=201)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)

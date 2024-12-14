@@ -4,6 +4,7 @@ from api import views
 
 urlpatterns = [
     path('robots-stats/', views.RobotStatsView.as_view(), name='robots-stats'),
+    path('robots/order/', views.RobotOrderView.as_view(), name='create-robots'),
     path('robots/', views.CreateRobotView.as_view(), name='create-robots'),
 
 ]
