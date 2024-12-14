@@ -5,4 +5,4 @@ class RobotsConfig(AppConfig):
     name = 'robots'
 
     def ready(self):
-        pass
+        import robots.signals
